@@ -817,18 +817,29 @@ export class WAStartupService {
             timestamp = 0;
           }
 
+
           const messageType = getContentType(m.message);
 
           if (!messageType) {
             continue;
           }
-
+          
+          const JidAndLid = {
+              default: m.key?.remoteJid,
+              alternative: m.key?.remoteJidAlt || m?.key?.['lid']
+          };
+          
+          const JidAndLidParticipant = {
+              default: m?.participant || m.key?.participant,
+              alternative: m?.participantAlt || m.key?.participantAlt
+          };
+            
           messagesRaw.push({
             keyId: m.key.id,
-            keyRemoteJid: m.key?.remoteJid || m.key?.['lid'],
+            keyRemoteJid: JidAndLid,
             keyFromMe: m.key.fromMe,
             pushName: m?.pushName || m.key.remoteJid.split('@')[0],
-            keyParticipant: m?.participant || m.key?.participant,
+            keyParticipant: JidAndLidParticipant,
             messageType,
             content: m.message[messageType] as PrismType.Prisma.JsonValue,
             messageTimestamp: timestamp,
@@ -873,13 +884,23 @@ export class WAStartupService {
             text: received.message[messageType],
           } as any;
         }
-
+        
+        const JidAndLid = {
+            jid: received.key?.remoteJid,
+            lid: received.key?.remoteJidAlt || received?.key?.['lid']
+        };
+        
+        const JidAndLidParticipant = {
+            default: received?.participant || received.key?.participant,
+            alternative: received?.participantAlt || received.key?.participantAlt
+        };
+          
         const messageRaw = {
           keyId: received.key.id,
-          keyRemoteJid: received.key?.remoteJid || received?.key?.['lid'],
+          keyRemoteJid: JidAndLid,
           keyFromMe: received.key.fromMe,
           pushName: received.pushName,
-          keyParticipant: received?.participant || received.key?.participant,
+          keyParticipant: JidAndLidParticipant,
           messageType,
           content: received.message[messageType] as PrismType.Prisma.JsonValue,
           messageTimestamp: received.messageTimestamp,
@@ -915,6 +936,8 @@ export class WAStartupService {
 
         this.logger.log('Type: ' + type);
         console.log(messageRaw);
+        
+        console.log(received);
 
         this.ws.send(this.instance.name, 'messages.upsert', messageRaw);
 
@@ -1340,12 +1363,22 @@ export class WAStartupService {
             }
           }
         }
+        
+        const JidAndLid = {
+            jid: m.key?.remoteJid,
+            lid: m.key?.remoteJidAlt || m?.key?.['lid']
+        };
 
+        const JidAndLidParticipant = {
+            default: m?.participant || m.key?.participant,
+            alternative: m?.participantAlt || m.key?.participantAlt
+        };
+          
         return {
           keyId: m.key.id,
           keyFromMe: m.key.fromMe,
-          keyRemoteJid: m.key?.remoteJid || m.key?.['lid'],
-          keyParticipant: m?.participant,
+          keyRemoteJid: JidAndLid,
+          keyParticipant: JidAndLidParticipant,
           pushName: m?.pushName,
           messageType: getContentType(m.message),
           content: m.message[getContentType(m.message)] as PrismType.Prisma.JsonValue,
@@ -1962,7 +1995,7 @@ export class WAStartupService {
         id: message.keyId,
         fromMe: message.keyFromMe,
         remoteJid: message.keyRemoteJid,
-        participant: message?.keyParticipant,
+        participant: message?.keyParticipant
       };
 
       return await this.sendMessageWithTyping<AnyMessageContent>(message.keyRemoteJid, {
