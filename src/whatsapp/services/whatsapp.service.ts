@@ -77,6 +77,7 @@ import {
   GlobalWebhook,
   QrCode,
   ProviderSession,
+  EnvProxy,
 } from '../../config/env.config';
 import { Logger } from '../../config/logger.config';
 import { INSTANCE_DIR, ROOT_DIR } from '../../config/path.config';
@@ -151,6 +152,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'fs';
+import { createProxyAgents } from '../../utils/proxy';
 
 type InstanceQrCode = {
   count: number;
@@ -520,6 +522,9 @@ export class WAStartupService {
     const { EXPIRATION_TIME } = this.configService.get<QrCode>('QRCODE');
     const CONNECTION_TIMEOUT = this.configService.get<number>('CONNECTION_TIMEOUT');
 
+    const proxy = this.configService.get<EnvProxy>('PROXY');
+    const agents = createProxyAgents(proxy?.WS, proxy?.FETCH);
+
     const socketConfig: UserFacingSocketConfig = {
       auth: {
         creds: this.authState.state.creds,
@@ -528,6 +533,8 @@ export class WAStartupService {
           P({ level: 'silent' }) as any,
         ),
       },
+      agent: agents?.wsAgent,
+      fetchAgent: agents?.fetchAgent,
       logger: P({ level: 'silent' }) as any,
       printQRInTerminal: false,
       browser,
@@ -836,10 +843,17 @@ export class WAStartupService {
             
           messagesRaw.push({
             keyId: m.key.id,
+<<<<<<< HEAD
             keyRemoteJid: JidAndLid,
             keyFromMe: m.key.fromMe,
             pushName: m?.pushName || m.key.remoteJid.split('@')[0],
             keyParticipant: JidAndLidParticipant,
+=======
+            keyRemoteJid: this.normalizeJid(m.key),
+            keyFromMe: m.key.fromMe,
+            pushName: m?.pushName || m.key.remoteJid.split('@')[0],
+            keyParticipant: m?.participant || this.normalizeParticipant(m.key),
+>>>>>>> cf63498d5dece63dfc8d8a10d012d0ffc6ef286c
             messageType,
             content: m.message[messageType] as PrismType.Prisma.JsonValue,
             messageTimestamp: timestamp,
@@ -884,6 +898,7 @@ export class WAStartupService {
             text: received.message[messageType],
           } as any;
         }
+<<<<<<< HEAD
         
         const JidAndLid = {
             jid: received.key?.remoteJid,
@@ -901,6 +916,26 @@ export class WAStartupService {
           keyFromMe: received.key.fromMe,
           pushName: received.pushName,
           keyParticipant: JidAndLidParticipant,
+=======
+
+        if (received.message?.protocolMessage) {
+          const m = received.message.protocolMessage;
+          if (typeof m?.type === 'number') {
+            const typeName =
+              proto.Message.ProtocolMessage.Type[m.type as any] ?? 'UNKNOWN_TYPE';
+            m.type = typeName as any;
+            received.message.protocolMessage = m;
+          }
+        }
+
+        const messageRaw = {
+          keyId: received.key.id,
+          keyRemoteJid: this.normalizeJid(received.key),
+          keyFromMe: received.key.fromMe,
+          pushName: received.pushName,
+          keyParticipant:
+            received?.participant || this.normalizeParticipant(received.key),
+>>>>>>> cf63498d5dece63dfc8d8a10d012d0ffc6ef286c
           messageType,
           content: received.message[messageType] as PrismType.Prisma.JsonValue,
           messageTimestamp: received.messageTimestamp,
@@ -1204,6 +1239,14 @@ export class WAStartupService {
     } else {
       return jid;
     }
+  }
+
+  private normalizeJid(key: proto.IMessageKey) {
+    return key?.remoteJid || key?.['remoteJidAlt'] || key?.['lid'];
+  }
+
+  private normalizeParticipant(key: proto.IMessageKey) {
+    return key?.participant || key?.['participantAlt'];
   }
 
   private createJid(number: string): string {
