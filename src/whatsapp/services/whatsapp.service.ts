@@ -954,8 +954,6 @@ export class WAStartupService {
         this.logger.log('Type: ' + type);
         console.log(messageRaw);
         
-        console.log(received);
-
         this.ws.send(this.instance.name, 'messages.upsert', messageRaw);
 
         await this.sendDataWebhook('messagesUpsert', messageRaw);
