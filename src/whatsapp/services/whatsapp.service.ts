@@ -843,17 +843,10 @@ export class WAStartupService {
             
           messagesRaw.push({
             keyId: m.key.id,
-<<<<<<< HEAD
             keyRemoteJid: JidAndLid,
             keyFromMe: m.key.fromMe,
             pushName: m?.pushName || m.key.remoteJid.split('@')[0],
             keyParticipant: JidAndLidParticipant,
-=======
-            keyRemoteJid: this.normalizeJid(m.key),
-            keyFromMe: m.key.fromMe,
-            pushName: m?.pushName || m.key.remoteJid.split('@')[0],
-            keyParticipant: m?.participant || this.normalizeParticipant(m.key),
->>>>>>> cf63498d5dece63dfc8d8a10d012d0ffc6ef286c
             messageType,
             content: m.message[messageType] as PrismType.Prisma.JsonValue,
             messageTimestamp: timestamp,
@@ -898,8 +891,7 @@ export class WAStartupService {
             text: received.message[messageType],
           } as any;
         }
-<<<<<<< HEAD
-        
+
         const JidAndLid = {
             jid: received.key?.remoteJid,
             lid: received.key?.remoteJidAlt || received?.key?.['lid']
@@ -909,16 +901,8 @@ export class WAStartupService {
             default: received?.participant || received.key?.participant,
             alternative: received?.participantAlt || received.key?.participantAlt
         };
-          
-        const messageRaw = {
-          keyId: received.key.id,
-          keyRemoteJid: JidAndLid,
-          keyFromMe: received.key.fromMe,
-          pushName: received.pushName,
-          keyParticipant: JidAndLidParticipant,
-=======
-
-        if (received.message?.protocolMessage) {
+        
+		if (received.message?.protocolMessage) {
           const m = received.message.protocolMessage;
           if (typeof m?.type === 'number') {
             const typeName =
@@ -927,15 +911,13 @@ export class WAStartupService {
             received.message.protocolMessage = m;
           }
         }
-
+		
         const messageRaw = {
           keyId: received.key.id,
-          keyRemoteJid: this.normalizeJid(received.key),
+          keyRemoteJid: JidAndLid,
           keyFromMe: received.key.fromMe,
           pushName: received.pushName,
-          keyParticipant:
-            received?.participant || this.normalizeParticipant(received.key),
->>>>>>> cf63498d5dece63dfc8d8a10d012d0ffc6ef286c
+          keyParticipant: JidAndLidParticipant,
           messageType,
           content: received.message[messageType] as PrismType.Prisma.JsonValue,
           messageTimestamp: received.messageTimestamp,
