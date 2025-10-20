@@ -2256,7 +2256,7 @@ export class WAStartupService {
       let mediaType: string;
 
       for (const type of TypeMediaMessage) {
-        mediaMessage = msg.message[type];
+        mediaMessage = msg?.message?.[type];
         if (mediaMessage) {
           mediaType = type;
           break;
