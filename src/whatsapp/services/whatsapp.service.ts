@@ -588,7 +588,7 @@ export class WAStartupService {
 
   private readonly chatHandle = {
     'chats.upsert': async (chats: Chat[]) => {
-      chats.forEach(async (chat) => {
+      for (const chat of chats) {
         try {
           const item = { ...chat };
           delete item.id;
@@ -626,7 +626,7 @@ export class WAStartupService {
         } catch (error) {
           this.logger.error(error);
         }
-      });
+      }
     },
 
     'chats.update': async (
@@ -689,7 +689,7 @@ export class WAStartupService {
 
     'chats.delete': async (chats: string[]) => {
       await this.sendDataWebhook('chatsDeleted', [...chats]);
-      for await (const chat of chats) {
+      for (const chat of chats) {
         const c = await this.repository.chat.findFirst({
           where: {
             remoteJid: chat,
@@ -707,8 +707,8 @@ export class WAStartupService {
   };
 
   private readonly contactHandle = {
-    'contacts.upsert': (contacts: Contact[]) => {
-      contacts.forEach(async (contact) => {
+    'contacts.upsert': async (contacts: Contact[]) => {
+      for (const contact of contacts) {
         const list: PrismType.Contact[] = [];
         try {
           const find = await this.repository.contact.findFirst({
@@ -736,11 +736,11 @@ export class WAStartupService {
         } catch (error) {
           this.logger.error(error);
         }
-      });
+      }
     },
 
     'contacts.update': async (contacts: Partial<Contact>[]) => {
-      contacts.forEach(async (contact) => {
+      for (const contact of contacts) {
         const list: PrismType.Contact[] = [];
         try {
           const find = await this.repository.contact.findFirst({
@@ -768,7 +768,7 @@ export class WAStartupService {
         } catch (error) {
           this.logger.error(error);
         }
-      });
+      }
     },
   };
 
@@ -778,13 +778,17 @@ export class WAStartupService {
     });
 
     for await (const message of messages) {
-      if (messagesRepository.find((mr) => mr.keyId === message.keyId)) {
-        continue;
-      }
+      try {
+        if (messagesRepository.find((mr) => mr.keyId === message.keyId)) {
+          continue;
+        }
 
-      await this.repository.message.create({
-        data: message,
-      });
+        await this.repository.message.create({
+          data: message,
+        });
+      } catch {
+        //
+      }
     }
   }
 
@@ -806,7 +810,7 @@ export class WAStartupService {
 
       if (messages && messages?.length > 0) {
         const messagesRaw: PrismType.Message[] = [];
-        for await (const [, m] of Object.entries(messages)) {
+        for (const [, m] of Object.entries(messages)) {
           if (
             m.message?.protocolMessage ||
             m.message?.senderKeyDistributionMessage ||
@@ -817,11 +821,20 @@ export class WAStartupService {
 
           let timestamp = m?.messageTimestamp;
 
-          if (timestamp && typeof timestamp === 'object' && typeof timestamp.toNumber === 'function') {
+          if (
+            timestamp &&
+            typeof timestamp === 'object' &&
+            typeof timestamp.toNumber === 'function'
+          ) {
             timestamp = timestamp.toNumber();
-          }else if (timestamp && typeof timestamp === 'object' && 'low' in timestamp && 'high' in timestamp) {
+          } else if (
+            timestamp &&
+            typeof timestamp === 'object' &&
+            'low' in timestamp &&
+            'high' in timestamp
+          ) {
             timestamp = Number(timestamp.low) || 0;
-          }else if (typeof timestamp !== 'number') {
+          } else if (typeof timestamp !== 'number') {
             timestamp = 0;
           }
 
