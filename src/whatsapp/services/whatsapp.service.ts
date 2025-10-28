@@ -52,6 +52,7 @@ import makeWASocket, {
   getContentType,
   getDevice,
   GroupMetadata,
+  GroupParticipant,
   isJidGroup,
   isLidUser,
   makeCacheableSignalKeyStore,
@@ -880,8 +881,14 @@ export class WAStartupService {
 
         this.client.sendPresenceUpdate('unavailable');
 
-        if (Long.isLong(received?.messageTimestamp)) {
-          received.messageTimestamp = received.messageTimestamp.toNumber();
+		let timestamp = received?.messageTimestamp;
+
+        if (timestamp && typeof timestamp === 'object' && typeof timestamp.toNumber === 'function') {
+          timestamp = timestamp.toNumber();
+        }else if (timestamp && typeof timestamp === 'object' && 'low' in timestamp && 'high' in timestamp) {
+          timestamp = Number(timestamp.low) || 0;
+        }else if (typeof timestamp !== 'number') {
+          timestamp = 0;
         }
 
         const messageType = getContentType(received.message);
@@ -919,8 +926,8 @@ export class WAStartupService {
           pushName: received.pushName,
           keyParticipant: JidAndLidParticipant,
           messageType,
-          content: received.message[messageType] as PrismType.Prisma.JsonValue,
-          messageTimestamp: received.messageTimestamp,
+          content: JSON.parse(JSON.stringify(received.message[messageType])) as PrismType.Prisma.JsonValue,
+          messageTimestamp: timestamp,
           instanceId: this.instance.id,
           device: (() => {
             if (isValidUlid(received.key.id)) {
@@ -1069,9 +1076,11 @@ export class WAStartupService {
     },
 
     'group-participants.update': (participantsUpdate: {
-      id: string;
-      participants: string[];
-      action: ParticipantAction;
+      id: string
+	  author: string
+	  authorPn?: string
+	  participants: GroupParticipant[]
+	  action: ParticipantAction
     }) => {
       this.ws.send(this.instance.name, 'group-participants.update', participantsUpdate);
       this.sendDataWebhook('groupsParticipantsUpdated', participantsUpdate);
@@ -1386,11 +1395,21 @@ export class WAStartupService {
             }
           }
         }
-        
+
         const JidAndLid = {
             jid: m.key?.remoteJid,
             lid: m.key?.remoteJidAlt || m?.key?.['lid']
         };
+
+		let timestamp = m?.messageTimestamp;
+
+        if (timestamp && typeof timestamp === 'object' && typeof timestamp.toNumber === 'function') {
+          timestamp = timestamp.toNumber();
+        }else if (timestamp && typeof timestamp === 'object' && 'low' in timestamp && 'high' in timestamp) {
+          timestamp = Number(timestamp.low) || 0;
+        }else if (typeof timestamp !== 'number') {
+          timestamp = 0;
+        }
 
         const JidAndLidParticipant = {
             default: m?.participant || m.key?.participant,
@@ -1404,13 +1423,8 @@ export class WAStartupService {
           keyParticipant: JidAndLidParticipant,
           pushName: m?.pushName,
           messageType: getContentType(m.message),
-          content: m.message[getContentType(m.message)] as PrismType.Prisma.JsonValue,
-          messageTimestamp: (() => {
-            if (Long.isLong(m.messageTimestamp)) {
-              return m.messageTimestamp.toNumber();
-            }
-            return m.messageTimestamp;
-          })(),
+          content: JSON.parse(JSON.stringify(m.message[getContentType(m.message)])) as PrismType.Prisma.JsonValue,
+          messageTimestamp: timestamp,
           instanceId: this.instance.id,
           device: 'web',
           isGroup: isJidGroup(m.key.remoteJid),
@@ -2557,4 +2571,5 @@ export class WAStartupService {
       throw new BadRequestException('Unable to leave the group', error.toString());
     }
   }
+  
 }
