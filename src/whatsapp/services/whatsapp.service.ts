@@ -355,6 +355,8 @@ export class WAStartupService {
         description: 'Error on send data to webhook',
       });
     }
+
+    data = undefined;
   }
 
   private async connectionUpdate({
@@ -869,7 +871,7 @@ export class WAStartupService {
           } as PrismType.Message);
         }
 
-        this.sendDataWebhook('messagesSet', [...messagesRaw]);
+        this.sendDataWebhook('messagesSet', messagesRaw);
 
         if (this.databaseOptions.DB_OPTIONS.SYNC_MESSAGES) {
           await this.syncMessage(messagesRaw);
@@ -905,6 +907,9 @@ export class WAStartupService {
         }
 
         const messageType = getContentType(received.message);
+        if (!messageType) {
+          return;
+        }
 
         if (typeof received.message[messageType] === 'string') {
           received.message[messageType] = {
@@ -1162,7 +1167,7 @@ export class WAStartupService {
 
         if (events?.['group-participants.update']) {
           const payload = events['group-participants.update'];
-          this.groupHandler['group-participants.update'](payload);
+          this.groupHandler['group-participants.update'](payload as any);
         }
 
         if (events?.['chats.upsert']) {
