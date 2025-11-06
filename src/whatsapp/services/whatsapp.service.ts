@@ -822,8 +822,8 @@ export class WAStartupService {
             instanceId: this.instance.id,
           } as PrismType.Chat;
         });
-        await this.sendDataWebhook('chatsSet', chatsRaw);
-        await this.repository.chat.createMany({ data: chatsRaw });
+        this.sendDataWebhook('chatsSet', chatsRaw);
+        this.repository.chat.createMany({ data: chatsRaw });
       }
 
       if (messages && messages?.length > 0) {
